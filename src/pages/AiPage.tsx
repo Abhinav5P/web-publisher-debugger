@@ -1,0 +1,355 @@
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import type { SeoData, PrebidData, GtmData, AnalyticsData, AiContext, AiProvider } from '@/shared/types'
+import type { LucideIcon } from 'lucide-react'
+import { useChat } from '@/ai/use-chat'
+import { createAnthropicProvider } from '@/ai/providers/anthropic'
+import { createOpenAIProvider } from '@/ai/providers/openai'
+import { createDataTools, getToolDescriptions } from '@/ai/tools'
+import type { ToolContext, ToolPermissions } from '@/ai/tools'
+import { Search, BarChart3, Tag, LineChart, Plus } from 'lucide-react'
+
+import { Messages } from '@/components/chat'
+import type { ChatMessage } from '@/components/chat/types'
+import { ChatInput } from '@/components/chat/ChatInput'
+import { EmptyState, ApiKeyMissing } from '@/components/layout/EmptyState'
+import { ErrorMessage } from '@/components/common/LoadingIndicator'
+import { ChatHistory } from '@/components/chat/ChatHistory'
+import { Button } from '@/components/ui/button'
+import { useChatPersistence } from '@/hooks/useChatPersistence'
+
+const BASE_SYSTEM_PROMPT = `You are a Web Publisher Technical Expert specializing in:
+- Header Bidding (Prebid.js, Amazon TAM)
+- Google Ad Manager / Google Publisher Tag
+- Google Tag Manager and dataLayer
+- SEO (meta tags, structured data, Core Web Vitals)
+- Web Analytics (GA4, Facebook Pixel, marketing pixels)
+
+## How to Work
+1. When asked about page data, use the available tools to fetch the information you need
+2. Start with getTrackingOverview to understand what's available on the page
+3. Then dive deeper with specific tools as needed
+4. Only fetch data the user has permitted (check the permissions below)
+
+## Response Guidelines
+- Always respond in the same language as the user's message
+- Be concise but thorough
+- Format responses with clear sections when appropriate
+- Use markdown formatting for better readability
+- Provide actionable recommendations when analyzing issues`
+
+const QUICK_PROMPTS = [
+  'Analyze the SEO issues and suggest fixes',
+  'What are the main problems with this page?',
+  'Summarize the advertising setup',
+  'Are there any tracking issues?',
+]
+
+export interface ContextOption {
+  key: keyof Pick<AiContext, 'includeSeo' | 'includeAdTech' | 'includeGtm' | 'includeAnalytics'>
+  label: string
+  icon: LucideIcon
+  hasData: boolean
+}
+
+interface AiPageProps {
+  seoData: SeoData | null
+  prebidData: PrebidData | null
+  gtmData: GtmData | null
+  analyticsData: AnalyticsData | null
+  tabId: number | null
+}
+
+export const AiPage: React.FC<AiPageProps> = ({
+  seoData,
+  prebidData,
+  gtmData,
+  analyticsData,
+  tabId,
+}) => {
+  const [inputValue, setInputValue] = useState('')
+  const [apiKey, setApiKey] = useState<string | null>(null)
+  const [aiProvider, setAiProvider] = useState<AiProvider>('anthropic')
+  const [context, setContext] = useState<AiContext>({
+    includeSeo: true,
+    includeAdTech: true,
+    includeGtm: true,
+    includeAnalytics: true,
+    seoData: seoData || undefined,
+    adTechData: prebidData || undefined,
+    gtmData: gtmData || undefined,
+    analyticsData: analyticsData || undefined,
+  })
+  const [contextOpen, setContextOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [initialMessages, setInitialMessages] = useState<ChatMessage[]>([])
+
+  // Chat persistence
+  const {
+    chats,
+    loadChat,
+    saveUserMessage,
+    saveFinishedMessages,
+    removeChat,
+    renameChat,
+    generateUUID,
+  } = useChatPersistence()
+
+  const [chatId, setChatId] = useState<string>(() => generateUUID())
+
+  useEffect(() => {
+    // Check if running in Chrome extension context
+    if (typeof chrome !== 'undefined' && chrome.storage?.sync) {
+      chrome.storage.sync.get(['settings'], (result) => {
+        if (result.settings) {
+          const provider = result.settings.aiProvider || 'anthropic'
+          setAiProvider(provider)
+          if (provider === 'anthropic' && result.settings.claudeApiKey) {
+            setApiKey(result.settings.claudeApiKey)
+          } else if (provider === 'openai' && result.settings.openaiApiKey) {
+            setApiKey(result.settings.openaiApiKey)
+          }
+        }
+      })
+    } else {
+      // Dev mode: allow setting API key via localStorage
+      const devProvider = (localStorage.getItem('aiProvider') as AiProvider) || 'anthropic'
+      setAiProvider(devProvider)
+      const devKey = localStorage.getItem(devProvider === 'openai' ? 'openaiApiKey' : 'claudeApiKey')
+      if (devKey) setApiKey(devKey)
+    }
+  }, [])
+
+  useEffect(() => {
+    setContext((prev) => ({
+      ...prev,
+      seoData: seoData || undefined,
+      adTechData: prebidData || undefined,
+      gtmData: gtmData || undefined,
+      analyticsData: analyticsData || undefined,
+    }))
+  }, [seoData, prebidData, gtmData, analyticsData])
+
+  // Tool context - the actual data available to tools
+  const toolContext: ToolContext = useMemo(() => ({
+    seoData,
+    prebidData,
+    gtmData,
+    analyticsData,
+  }), [seoData, prebidData, gtmData, analyticsData])
+
+  // Tool permissions - what the user allows
+  const toolPermissions: ToolPermissions = useMemo(() => ({
+    allowSeo: context.includeSeo,
+    allowAdTech: context.includeAdTech,
+    allowGtm: context.includeGtm,
+    allowAnalytics: context.includeAnalytics,
+  }), [context.includeSeo, context.includeAdTech, context.includeGtm, context.includeAnalytics])
+
+  // Function to get active tab ID for dynamic Prebid queries
+  const getActiveTabId = useCallback(() => tabId, [tabId])
+
+  // Create tools with current context and permissions
+  const tools = useMemo(() => {
+    return createDataTools(toolContext, toolPermissions, getActiveTabId)
+  }, [toolContext, toolPermissions, getActiveTabId])
+
+  // Build system prompt with tool descriptions and permissions
+  const systemPrompt = useMemo(() => {
+    const permittedSources: string[] = []
+    if (toolPermissions.allowSeo) permittedSources.push('SEO')
+    if (toolPermissions.allowAdTech) permittedSources.push('AdTech/Prebid')
+    if (toolPermissions.allowGtm) permittedSources.push('GTM')
+    if (toolPermissions.allowAnalytics) permittedSources.push('Analytics (GA4, Pixels)')
+
+    const permissionsSection = permittedSources.length > 0
+      ? `\n\n## User Permissions\nThe user has granted access to: ${permittedSources.join(', ')}\nOnly use tools for data the user has permitted.`
+      : '\n\n## User Permissions\nNo data access has been granted. Ask the user to enable data access in the context settings.'
+
+    return `${BASE_SYSTEM_PROMPT}${permissionsSection}\n\n${getToolDescriptions()}`
+  }, [toolPermissions])
+
+  const model = useMemo(() => {
+    if (!apiKey) return null
+    if (aiProvider === 'openai') {
+      const openai = createOpenAIProvider(apiKey)
+      return openai('gpt-4o')
+    }
+    const anthropic = createAnthropicProvider(apiKey)
+    return anthropic('claude-sonnet-4-20250514')
+  }, [apiKey, aiProvider])
+
+  // Handle message finish - save to IndexedDB
+  const handleFinish = useCallback(async ({ messages: finishedMessages }: { messages: ChatMessage[] }) => {
+    if (finishedMessages.length === 0) return
+
+    // Save all messages that aren't already saved
+    // The assistant message is the last one
+    const assistantMessages = finishedMessages.filter(m => m.role === 'assistant')
+    if (assistantMessages.length > 0) {
+      await saveFinishedMessages(chatId, assistantMessages)
+    }
+  }, [chatId, saveFinishedMessages])
+
+  const { messages, sendMessage, setMessages, status, error } = useChat(
+    model!,
+    systemPrompt,
+    {
+      experimental_throttle: 50,
+      onFinish: handleFinish,
+    },
+    tools,
+    {
+      id: chatId,
+      initialMessages,
+    }
+  )
+
+  const isLoading = status === 'streaming' || status === 'submitted'
+
+  // Handle new chat
+  const handleNewChat = useCallback(async () => {
+    const newId = generateUUID()
+    setChatId(newId)
+    setInitialMessages([])
+    setMessages([])
+    setHistoryOpen(false)
+  }, [generateUUID, setMessages])
+
+  // Handle load chat from history
+  const handleLoadChat = useCallback(async (id: string) => {
+    const loadedMessages = await loadChat(id)
+    setChatId(id)
+    setInitialMessages(loadedMessages)
+    setMessages(loadedMessages)
+    setHistoryOpen(false)
+  }, [loadChat, setMessages])
+
+  // Handle delete chat
+  const handleDeleteChat = useCallback(async (id: string) => {
+    await removeChat(id)
+    // If deleted current chat, start new one
+    if (id === chatId) {
+      handleNewChat()
+    }
+  }, [removeChat, chatId, handleNewChat])
+
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (inputValue.trim() && !isLoading && model) {
+      const userMessage: ChatMessage = {
+        id: generateUUID(),
+        role: 'user',
+        parts: [{ type: 'text', text: inputValue.trim() }],
+      }
+
+      // Save user message immediately
+      await saveUserMessage(chatId, userMessage)
+
+      // Send to AI
+      sendMessage({ text: inputValue.trim() })
+      setInputValue('')
+    }
+  }, [inputValue, isLoading, model, chatId, generateUUID, saveUserMessage, sendMessage])
+
+  // Handle quick prompt click
+  const handlePromptClick = useCallback(async (prompt: string) => {
+    if (!model) return
+
+    const userMessage: ChatMessage = {
+      id: generateUUID(),
+      role: 'user',
+      parts: [{ type: 'text', text: prompt }],
+    }
+
+    // Save user message immediately
+    await saveUserMessage(chatId, userMessage)
+
+    // Send to AI
+    sendMessage({ text: prompt })
+  }, [model, chatId, generateUUID, saveUserMessage, sendMessage])
+
+  const contextOptions: ContextOption[] = [
+    { key: 'includeSeo', label: 'SEO', icon: Search, hasData: !!seoData },
+    { key: 'includeAdTech', label: 'AdTech', icon: BarChart3, hasData: !!prebidData?.detected },
+    { key: 'includeGtm', label: 'GTM', icon: Tag, hasData: !!gtmData?.detected },
+    {
+      key: 'includeAnalytics',
+      label: 'Analytics',
+      icon: LineChart,
+      hasData: !!analyticsData?.ga4 || (analyticsData?.pixels?.length ?? 0) > 0,
+    },
+  ]
+
+  const activeContextCount = contextOptions.filter(
+    (opt) => opt.hasData && context[opt.key]
+  ).length
+
+  if (!apiKey) {
+    return <ApiKeyMissing />
+  }
+
+  const emptyState = (
+    <EmptyState
+      quickPrompts={QUICK_PROMPTS}
+      onPromptClick={handlePromptClick}
+      isLoading={isLoading}
+    />
+  )
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Chat toolbar */}
+      <div className="flex items-center justify-between px-2 py-1 border-b shrink-0">
+        <ChatHistory
+          chats={chats}
+          currentChatId={chatId}
+          isOpen={historyOpen}
+          onOpenChange={setHistoryOpen}
+          onSelectChat={handleLoadChat}
+          onNewChat={handleNewChat}
+          onDeleteChat={handleDeleteChat}
+          onRenameChat={renameChat}
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleNewChat}
+          title="新しいチャット"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <Messages
+        messages={messages}
+        status={status}
+        emptyState={emptyState}
+      />
+
+      {error && (
+        <div className="px-4">
+          <div className="max-w-3xl mx-auto">
+            <ErrorMessage message={error.message} />
+          </div>
+        </div>
+      )}
+
+      <div className="shrink-0 bg-transparent px-4 pb-4">
+        <div className="max-w-3xl mx-auto">
+          <ChatInput
+            inputValue={inputValue}
+            setInputValue={setInputValue}
+            isLoading={isLoading}
+            onSubmit={handleSubmit}
+            contextOpen={contextOpen}
+            setContextOpen={setContextOpen}
+            context={context}
+            setContext={setContext}
+            contextOptions={contextOptions}
+            activeContextCount={activeContextCount}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}

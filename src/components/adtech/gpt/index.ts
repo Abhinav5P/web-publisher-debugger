@@ -1,0 +1,6 @@
+export { GamIcon } from './GamIcon'
+export { GptHeader } from './GptHeader'
+export { GptTimeline } from './GptTimeline'
+export { GptConfig } from './GptConfig'
+export { GptPageTargeting } from './GptPageTargeting'
+export { GptSlots } from './GptSlots'
