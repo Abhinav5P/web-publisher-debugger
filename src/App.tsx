@@ -24,7 +24,7 @@ export const App: React.FC = () => {
       }
     }
   }, [])
-  const { seoData, prebidData, gptData, gtmData, analyticsData, isLoading, requestRefresh, tabId } = useMessageListener()
+  const { seoData, prebidData, gptData, gtmData, analyticsData, isLoading, reloadPage, tabId } = useMessageListener()
 
   const renderContent = () => {
     switch (activeTab) {
@@ -78,7 +78,7 @@ export const App: React.FC = () => {
       activeTab={activeTab}
       onTabChange={setActiveTab}
       isLoading={isLoading}
-      onRefresh={requestRefresh}
+      onRefresh={reloadPage}
     >
       {renderContent()}
     </Layout>

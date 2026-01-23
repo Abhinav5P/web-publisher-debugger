@@ -154,15 +154,19 @@ export function useMessageListener() {
     }
   }, [])
 
-  // データ更新リクエスト（リフレッシュボタン用）
-  const requestRefresh = useCallback(() => {
+  // ページリロード（リフレッシュボタン用）
+  const reloadPage = useCallback(async () => {
     if (!isExtension) return
     if (currentTabId) {
       setIsLoading(true)
-      chrome.runtime.sendMessage({
-        type: MessageType.REQUEST_REFRESH,
-        tabId: currentTabId,
-      })
+      // データをクリア
+      setSeoData(null)
+      setPrebidData(null)
+      setGptData(null)
+      setGtmData(null)
+      setAnalyticsData(null)
+      // ページをリロード
+      chrome.tabs.reload(currentTabId)
     }
   }, [currentTabId])
 
@@ -173,7 +177,7 @@ export function useMessageListener() {
     gtmData,
     analyticsData,
     isLoading,
-    requestRefresh,
+    reloadPage,
     tabId: currentTabId,
   }
 }
