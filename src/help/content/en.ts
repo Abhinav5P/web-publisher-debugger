@@ -108,10 +108,6 @@ export const en = {
           content: 'Required to access the current tab content for analysis when you activate the extension.'
         },
         {
-          title: 'scripting',
-          content: 'Needed to inject content scripts that collect page data (AdTech, GTM, etc.).'
-        },
-        {
           title: 'storage',
           content: 'Used to save your settings and preferences.'
         },

@@ -108,10 +108,6 @@ export const ja = {
           content: '拡張機能を有効にした際に、現在のタブのコンテンツにアクセスして分析するために必要です。'
         },
         {
-          title: 'scripting',
-          content: 'ページデータ（AdTech、GTMなど）を収集するコンテンツスクリプトを注入するために必要です。'
-        },
-        {
           title: 'storage',
           content: '設定と環境設定を保存するために使用されます。'
         },

@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Web Publisher Debugger",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AdTech, GTM, SEO, Analytics debugging tool with AI assistance",
 
   "permissions": [
     "storage",
     "activeTab",
-    "scripting",
     "sidePanel"
   ],
 
